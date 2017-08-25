@@ -1,0 +1,80 @@
+---
+- hosts: mylocal
+  gather_facts: true
+  connection: local
+
+  vars:
+    - apt_file: /etc/apt/sources.list.d/google-chrome.list 
+
+  tasks: 
+    - name: install add-apt-repostory
+      become: true
+      apt: name=software-properties-common state=latest
+
+
+  
+
+    - name: add webupd8team repositories
+      become: true
+      apt_repository: repo="ppa:openjdk/ppa" state=present
+    
+
+    - name: install required software for nso
+      become: true
+      apt: name={{item}} state=latest update_cache=true cache_valid_time=3600
+      with_items:
+      - openjdk-8-jdk
+      - net-tools
+      #- ca-certificates
+      #- git
+      #- mc
+      #- vim
+      #- build-essential
+      #- ant
+    
+
+    #- name: copy nso distribution
+     # copy:
+      #  src=/home/samya/nso-4.4.1.linux.x86_64.installer.bin 
+       # dest=/home/samya/nso-local
+       
+
+
+    #- name: set nso installer executable rights
+     # file: path=/home/samya/nso-local/nso-4.4.1.linux.x86_64.installer.bin
+
+
+    #- name: install nso
+     # command: sh /home/samya/nso-local/nso-4.4.1.linux.x86_64.installer.bin --local-install /home/samya/nso-installbyAnsible2 creates=/home/samya/nso-installbyAnsible2
+
+
+    #- name: setup nso enviroment
+     # command: /home/samya/nso-installbyAnsible2/bin/ncs-setup --dest /home/samya/nso-ansiblerun creates=/home/samya/nso-ansiblerun
+
+    #- name: setup nso eclipse enviroment
+      #command: ~/nso/bin/ncs-setup --dest ~/nso-enviroment --eclipse-setup creates=~/nso-enviroment/.project
+
+    #- name: include ncsrc to .bashrc
+     # lineinfile: dest=~/.bashrc line='. ~/nso/ncsrc' state=present insertafter=EOF
+
+
+    # Install Google Chrome. See /usr/bin/google-chrom
+    - name: Does the Google apt file exist?
+      command: test -f {{apt_file}}
+      register: google_apt_exists
+      ignore_errors: True
+
+    - name: Add Google Chrome key
+      shell: wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+      when: google_apt_exists.rc == 1
+
+    - name: Add Google Chrome repo
+      copy: content="deb http://dl.google.com/linux/chrome/deb/ stable main" dest={{apt_file}} owner=root group=root mode=644
+      when: google_apt_exists.rc == 1
+
+    - name: Update apt cache
+      apt: update_cache=yes
+      when: google_apt_exists.rc == 1
+
+    - name: Install Google Chrome
+      apt: pkg=google-chrome-stable state=installed     
